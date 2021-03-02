@@ -1,7 +1,8 @@
 const puppeteer = require('puppeteer');
-const request_client = require('request-promise-native');
+const constants = require('./constants');
 
-const SAVED_URL = 'https://www.instagram.com/your-username/saved/';
+const TARGET_TAG_URL =
+  'https://www.instagram.com/explore/tags/%EA%B3%A8%ED%94%84%EC%8A%A4%EC%9C%99/';
 
 (async () => {
   const browser = await puppeteer.launch({
@@ -14,51 +15,27 @@ const SAVED_URL = 'https://www.instagram.com/your-username/saved/';
 
   await page.goto('https://www.instagram.com/accounts/login');
   await page.waitForSelector('input[name="username"]');
-  await page.type('input[name="username"]', 'your-username');
-  await page.type('input[name="password"]', 'your-password');
+  await page.type('input[name="username"]', constants.username);
+  await page.type('input[name="password"]', constants.password);
   await page.click('button[type="submit"]');
   await page.waitForNavigation({ waitUntil: 'networkidle0' });
 
-  await page.goto(SAVED_URL);
+  await page.goto(TARGET_TAG_URL);
   await page.waitForTimeout(3000);
 
-  page.on('request', (request) => {
-    request_client({
-      uri: request.url(),
-      resolveWithFullResponse: true,
-    })
-      .then((response) => {
-        const request_url = request.url();
-        if (request_url.includes('scontent')) {
-          console.log(request_url);
-        }
-        request.continue();
-      })
-      .catch((error) => {
-        console.error(error);
-        request.abort();
-      });
-  });
-
+  // 첫 번째 포스트 누르기
   await page.evaluate(() => {
-    (async function () {
-      await new Promise((resolve) => {
-        const distance = 100;
-        const delay = 100;
-        const timer = setInterval(() => {
-          document.scrollingElement.scrollBy(0, distance);
-          if (
-            document.scrollingElement.scrollTop + window.innerHeight >=
-            document.scrollingElement.scrollHeight
-          ) {
-            clearInterval(timer);
-            resolve();
-          }
-        }, delay);
-      });
-    })();
+    const firstPost = document.querySelector('article a');
+    firstPost.click();
   });
 
-  await page.evaluate(scrollToBottom);
-  await page.waitForTimeout(3000);
+  // 사용자 이름 가져오기
+  await page.waitForSelector('article header span a');
+  const username = await page.evaluate(() => {
+    console.log(document)
+    const usernameWrapper = document.querySelector('article header span a');
+    console.log(usernameWrapper);
+    return usernameWrapper?.innerText.trim();
+  });
+  console.log(username);
 })();

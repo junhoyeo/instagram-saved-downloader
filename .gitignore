@@ -1,5 +1,3 @@
 node_modules/
-images/
-out
-*.zip
+constants.js
 .DS_Store
